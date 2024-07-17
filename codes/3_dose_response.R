@@ -33,6 +33,8 @@ set.seed(20240103)
 #------------------------------------------------------------------------------
 # Compute cubic splines 
 #-----------------------------------------------------------------------------
+debugonce(bSpline)
+debugonce(fixest::feols)
 splines_SR <- fixest::feols(ddY ~ bSpline(d, 
                                           knots = quantile(d,probs = c(0.25, 0.5, 0.75)),
                                           degree = 3,

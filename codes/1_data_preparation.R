@@ -98,3 +98,4 @@ max_d_pos <- max(data_bcgk$d[data_bcgk$d>0])
 #---------------------------------------------------------------------------------------
 # Save the data
 save.image(here("data/processed/data_BCGK2019.RData"))
+
