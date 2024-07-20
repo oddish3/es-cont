@@ -35,12 +35,87 @@ set.seed(20240103)
 #-----------------------------------------------------------------------------
 debugonce(bSpline)
 debugonce(fixest::feols)
+
+spline_dosage_SR <- bSpline(data_bcgk_SR$d,
+                            knots = quantile(data_bcgk_SR$d,probs = c(0.25, 0.5, 0.75)),
+                            degree = 3,
+                            intercept = TRUE)
+plot(spline_dosage_SR)
 splines_SR <- fixest::feols(ddY ~ bSpline(d, 
                                           knots = quantile(d,probs = c(0.25, 0.5, 0.75)),
                                           degree = 3,
                                           intercept = TRUE) -1,
                             data = data_bcgk_SR,
                             cluster = ~ i)
+coefficients <- coef(splines_SR)
+coefficients <- as.numeric(coefficients)
+
+weighted_basis <- sweep(spline_dosage_SR, 2, coefficients, `*`)
+
+# Convert to a long format for ggplot2
+weighted_basis_long <- as.data.frame(weighted_basis) %>%
+  mutate(d = data_bcgk_SR$d) %>%
+  pivot_longer(cols = -d, names_to = "basis", values_to = "value")
+
+# 4. Sum Weighted Basis Functions to Get Full Spline
+full_spline <- rowSums(weighted_basis)
+
+# Add the full spline to the data frame for plotting
+data_bcgk_SR$full_spline <- full_spline
+
+# 5. Plot the Weighted Basis Functions and Full Spline
+
+# Plot the weighted basis functions
+weighted_basis_plot <- ggplot(weighted_basis_long, aes(x = d, y = value, color = basis)) +
+  geom_line() +
+  labs(title = "Weighted B-spline Basis Functions", y = "Weighted Basis Value", x = "d") +
+  theme_minimal()
+
+# Plot the original data and full B-spline
+full_spline_plot <- ggplot(data_bcgk_SR, aes(x = d)) +
+  geom_line(aes(y = ddY), color = "blue", alpha = 0.5) +   # Original data
+  geom_line(aes(y = full_spline), color = "red") +         # Full B-spline
+  labs(title = "Full B-spline", y = "Response", x = "d") +
+  theme_minimal()
+
+# Print the plots
+print(weighted_basis_plot)
+print(full_spline_plot)
+
+# Calculate the full B-spline
+full_spline <- spline_dosage_SR %*% coefficients
+
+# Add the full spline to the data frame for plotting
+data_bcgk_SR$full_spline <- full_spline
+
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+# Convert spline_dosage_SR to a long format for ggplot2
+spline_long <- as.data.frame(spline_dosage_SR) %>%
+  mutate(d = data_bcgk_SR$d) %>%
+  pivot_longer(cols = -d, names_to = "basis", values_to = "value")
+
+# Plot the basis functions
+basis_plot <- ggplot(spline_long, aes(x = d, y = value, color = basis)) +
+  geom_line() +
+  labs(title = "B-spline Basis Functions", y = "Basis Value", x = "d") +
+  theme_minimal()
+
+# Plot the original data and full B-spline
+full_spline_plot <- ggplot(data_bcgk_SR, aes(x = d)) +
+  geom_line(aes(y = ddY), color = "blue", alpha = 0.5) +   # Original data
+  geom_line(aes(y = full_spline), color = "red") +         # Full B-spline
+  labs(title = "Full B-spline", y = "Response", x = "d") +
+  theme_minimal()
+
+# Print the plots
+print(basis_plot)
+print(full_spline_plot)
+
+
+
 
 splines_LR <- fixest::feols(ddY ~ bSpline(d,
                                           knots = quantile(d,probs = c(0.25, 0.5, 0.75)),
